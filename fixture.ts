@@ -10,11 +10,27 @@ const BrowserStackLocal = require("browserstack-local");
 const util = require("util");
 
 // BrowserStack Specific Capabilities.
+interface Capabilities {
+  osVersion?: string;
+  deviceName?: string;
+  browserName: string;
+  os?: string;
+  browserVersion: string;
+  realMobile?: string;
+  name: string;
+  build: string;
+  'browserstack.username': string;
+  'browserstack.accessKey': string;
+  "browserstack.local": string | boolean;
+}
+
 // Set 'browserstack.local:true For Local testing
-const caps = {
+const caps: Capabilities = {
   osVersion: "13.0",
   deviceName: "Samsung Galaxy S23", // "Samsung Galaxy S22 Ultra", "Google Pixel 7 Pro", "OnePlus 9", etc.
   browserName: "chrome",
+  os: "",
+  browserVersion: "latest",
   realMobile: "true",
   name: "My android playwright test",
   build: "playwright-build-1",
@@ -37,13 +53,13 @@ const patchMobileCaps = (name, title) => {
   let [browerCaps, osCaps] = combination.split(/:/);
   let [browser, deviceName] = browerCaps.split(/@/);
   let osCapsSplit = osCaps.split(/ /);
-  let os = osCapsSplit.shift();
   let osVersion = osCapsSplit.join(" ");
   caps.browserName = browser ? browser : "chrome";
   caps.deviceName = deviceName ? deviceName : "Samsung Galaxy S22 Ultra";
   caps.osVersion = osVersion ? osVersion : "12.0";
   caps.name = title;
   caps.realMobile = "true";
+  delete caps.os;
 };
 
 const patchCaps = (name, title) => {
@@ -54,10 +70,13 @@ const patchCaps = (name, title) => {
   let os = osCapsSplit.shift();
   let os_version = osCapsSplit.join(" ");
   caps.browserName = browser ? browser : "chrome";
-//   caps.browserVersion = browser_version ? browser_version : "latest";
-//   caps.os = os ? os : "osx";
+  caps.browserVersion = browser_version ? browser_version : "latest";
+  caps.os = os ? os : "osx";
   caps.osVersion = os_version ? os_version : "catalina";
   caps.name = title;
+  delete caps.osVersion;
+  delete caps.deviceName;
+  delete caps.realMobile;
 };
 
 const isHash = (entity) =>
@@ -97,9 +116,6 @@ exports.test = base.test.extend({
         vContext = await vDevice.launchBrowser();
       } else {
         patchCaps(testInfo.project.name, `${testInfo.title}`);
-        // delete caps.osVersion;
-        // delete caps.deviceName;
-        // delete caps.realMobile;
         vBrowser = await playwright.chromium.connect({
           wsEndpoint:
             `wss://cdp.browserstack.com/playwright?caps=` +
